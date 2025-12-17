@@ -6,3 +6,5 @@ chroma_db/
 data/
 venv/
 *.txt
+.vscode/*
+.vscode/settings.json
