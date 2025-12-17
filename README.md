@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <video src="assets/demo.mp4" controls width="85%">
+  <video src="https://github.com/user-attachments/assets/fe005c73-1aaf-4445-b852-278ba95f5988" controls width="85%">
     Your browser does not support the video tag.
   </video>
   <br>
