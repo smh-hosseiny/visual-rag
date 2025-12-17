@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarketLens Agent</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .input-section {
+            padding: 40px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .input-group {
+            margin-bottom: 24px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.95rem;
+        }
+
+        .input-group input[type="text"] {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .input-group input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .file-upload-area {
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 32px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+            background: #f9fafb;
+        }
+
+        .file-upload-area:hover {
+            border-color: #667eea;
+            background: #f3f4f6;
+        }
+
+        .file-upload-area.drag-over {
+            border-color: #667eea;
+            background: #ede9fe;
+        }
+
+        .file-upload-area.has-file {
+            border-color: #10b981;
+            background: #d1fae5;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.6;
+        }
+
+        .upload-text {
+            color: #6b7280;
+            font-size: 0.95rem;
+        }
+
+        .upload-text strong {
+            color: #667eea;
+        }
+
+        .file-info {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .file-info.active {
+            display: flex;
+        }
+
+        .file-name {
+            color: #059669;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .remove-file {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .remove-file:hover {
+            background: #dc2626;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        .status-bar {
+            padding: 16px 40px;
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            display: none;
+        }
+
+        .status-bar.active {
+            display: block;
+        }
+
+        .status-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #6b7280;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e5e7eb;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .spinner-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            padding: 40px 20px;
+        }
+
+        .spinner-text {
+            font-size: 1.1rem;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .progress-log {
+            margin-top: 24px;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .progress-item {
+            padding: 12px 16px;
+            margin: 8px 0;
+            background: white;
+            border-left: 4px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .progress-item::before {
+            content: '';
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #e5e7eb;
+            border: 3px solid #d1d5db;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+
+        .progress-item.active {
+            border-left-color: #667eea;
+            background: #ede9fe;
+            color: #5b21b6;
+            font-weight: 600;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .progress-item.active::before {
+            background: #667eea;
+            border-color: #667eea;
+            animation: spin 1.5s linear infinite;
+        }
+
+        .progress-item.completed {
+            border-left-color: #10b981;
+            background: #f0fdf4;
+            color: #065f46;
+        }
+
+        .progress-item.completed::before {
+            background: #10b981;
+            border-color: #10b981;
+            content: '✓';
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .progress-item.failed {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        .progress-item.failed::before {
+            background: #ef4444;
+            border-color: #ef4444;
+            content: '✗';
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        .progress-text {
+            flex: 1;
+        }
+
+        .progress-timestamp {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            font-weight: normal;
+        }
+
+        .results-section {
+            padding: 40px;
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .result-card {
+            margin-bottom: 32px;
+        }
+
+        .result-card h2 {
+            font-size: 1.4rem;
+            color: #111827;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #667eea;
+            color: white;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .sources-list {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .source-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 0.9rem;
+            color: #4b5563;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .source-item:last-child {
+            border-bottom: none;
+        }
+
+        .report-content {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 32px;
+            margin-top: 16px;
+            line-height: 1.8;
+            color: #374151;
+        }
+
+        /* Markdown styling */
+        .report-content h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #111827;
+            margin: 1.5em 0 0.75em 0;
+            padding-bottom: 0.5em;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .report-content h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 1.25em 0 0.6em 0;
+        }
+
+        .report-content h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #374151;
+            margin: 1em 0 0.5em 0;
+        }
+
+        .report-content h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #4b5563;
+            margin: 0.9em 0 0.4em 0;
+        }
+
+        .report-content p {
+            margin: 0.75em 0;
+        }
+
+        .report-content ul, .report-content ol {
+            margin: 1em 0;
+            padding-left: 2em;
+        }
+
+        .report-content li {
+            margin: 0.5em 0;
+        }
+
+        .report-content strong {
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .report-content em {
+            font-style: italic;
+            color: #4b5563;
+        }
+
+        .report-content code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .report-content pre {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 1em 0;
+        }
+
+        .report-content pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+
+        .report-content blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 1em;
+            margin: 1em 0;
+            color: #4b5563;
+            font-style: italic;
+        }
+
+        .report-content hr {
+            border: none;
+            border-top: 2px solid #e5e7eb;
+            margin: 2em 0;
+        }
+
+        .report-content a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .report-content a:hover {
+            text-decoration: underline;
+        }
+
+        .report-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1em 0;
+        }
+
+        .report-content th, .report-content td {
+            border: 1px solid #e5e7eb;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        .report-content th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #9ca3af;
+        }
+
+        .help-text {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-top: 6px;
+        }
+
+        .download-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #e5e7eb;
+        }
+
+        .btn-download {
+            background: #10b981;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-download:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .input-section, .results-section {
+                padding: 24px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 MarketLens Agent</h1>
+            <p>Autonomous Market Research & Visual Analysis</p>
+        </div>
+
+        <div class="main-card">
+            <div class="input-section">
+                <form id="analysisForm">
+                    <div class="input-group">
+                        <label for="topicInput">Research Topic *</label>
+                        <input 
+                            type="text" 
+                            id="topicInput" 
+                            placeholder="e.g., Latest trends in AI-powered consumer electronics"
+                            autocomplete="off"
+                            required
+                        >
+                        <div class="help-text">Describe what you want to analyze</div>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Upload Source Material (Optional)</label>
+                        <div class="file-upload-area" id="fileUploadArea">
+                            <div class="upload-icon">📁</div>
+                            <div class="upload-text">
+                                <strong>Click to upload</strong> or drag and drop<br>
+                                Images, PDFs, or documents
+                            </div>
+                        </div>
+                        <input 
+                            type="file" 
+                            id="fileInput" 
+                            style="display: none;"
+                            accept="image/*,.pdf,.doc,.docx"
+                        >
+                        <div class="file-info" id="fileInfo">
+                            <span class="file-name" id="fileName">
+                                <span>✓</span>
+                                <span id="fileNameText"></span>
+                            </span>
+                            <button type="button" class="remove-file" id="removeFileBtn">Remove</button>
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="button" class="btn-primary" id="analyzeBtn">
+                            <span id="btnText">Start Analysis</span>
+                        </button>
+                        <button type="button" class="btn-secondary" id="clearBtn">Clear Results</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="status-bar" id="statusBar">
+                <div class="spinner-container">
+                    <div class="spinner"></div>
+                    <p class="spinner-text" id="statusText">Analyzing sources with AI agent...</p>
+                    <div class="progress-log" id="progressLog" style="display: none;"></div>
+                </div>
+            </div>
+
+            <div class="results-section" id="resultsSection">
+                <div class="result-card">
+                    <h2>
+                        📊 Sources Processed
+                        <span class="badge" id="sourceCount">0</span>
+                    </h2>
+                    <div class="sources-list" id="sourcesList"></div>
+                </div>
+
+                <div class="result-card">
+                    <h2>📄 Research Report</h2>
+                    <div class="report-content" id="reportContent"></div>
+                    <div class="download-section" id="downloadSection" style="display: none;">
+                        <button class="btn-download" id="downloadBtn">
+                            <span>📥</span>
+                            <span>Download Full Report</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ IMPORTANT: Update this with your server's IP address
+        const API_BASE_URL = 'http://127.0.0.1:8001';
+        
+        const elements = {
+            form: document.getElementById('analysisForm'),
+            topicInput: document.getElementById('topicInput'),
+            fileInput: document.getElementById('fileInput'),
+            fileUploadArea: document.getElementById('fileUploadArea'),
+            fileInfo: document.getElementById('fileInfo'),
+            fileName: document.getElementById('fileNameText'),
+            removeFileBtn: document.getElementById('removeFileBtn'),
+            analyzeBtn: document.getElementById('analyzeBtn'),
+            clearBtn: document.getElementById('clearBtn'),
+            btnText: document.getElementById('btnText'),
+            statusBar: document.getElementById('statusBar'),
+            statusText: document.getElementById('statusText'),
+            progressLog: document.getElementById('progressLog'),
+            resultsSection: document.getElementById('resultsSection'),
+            sourcesList: document.getElementById('sourcesList'),
+            sourceCount: document.getElementById('sourceCount'),
+            reportContent: document.getElementById('reportContent'),
+            downloadSection: document.getElementById('downloadSection'),
+            downloadBtn: document.getElementById('downloadBtn')
+        };
+
+        let selectedFile = null;
+        let reportFilename = null;
+        let eventSource = null;
+        let progressItems = new Map(); // Track progress items by their key
+
+        // File upload handlers
+        elements.fileUploadArea.addEventListener('click', () => {
+            elements.fileInput.click();
+        });
+
+        elements.fileInput.addEventListener('change', (e) => {
+            handleFileSelect(e.target.files[0]);
+        });
+
+        elements.removeFileBtn.addEventListener('click', () => {
+            clearFile();
+        });
+
+        // Drag and drop
+        elements.fileUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            elements.fileUploadArea.classList.add('drag-over');
+        });
+
+        elements.fileUploadArea.addEventListener('dragleave', () => {
+            elements.fileUploadArea.classList.remove('drag-over');
+        });
+
+        elements.fileUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            elements.fileUploadArea.classList.remove('drag-over');
+            handleFileSelect(e.dataTransfer.files[0]);
+        });
+
+        function handleFileSelect(file) {
+            if (!file) return;
+            
+            selectedFile = file;
+            elements.fileName.textContent = file.name;
+            elements.fileInfo.classList.add('active');
+            elements.fileUploadArea.classList.add('has-file');
+            
+            // Update upload area text
+            elements.fileUploadArea.querySelector('.upload-icon').textContent = '✓';
+            elements.fileUploadArea.querySelector('.upload-text').innerHTML = 
+                `<strong style="color: #059669;">File ready to upload</strong>`;
+        }
+
+        function clearFile() {
+            selectedFile = null;
+            elements.fileInput.value = '';
+            elements.fileInfo.classList.remove('active');
+            elements.fileUploadArea.classList.remove('has-file');
+            
+            // Reset upload area
+            elements.fileUploadArea.querySelector('.upload-icon').textContent = '📁';
+            elements.fileUploadArea.querySelector('.upload-text').innerHTML = 
+                '<strong>Click to upload</strong> or drag and drop<br>Images, PDFs, or documents';
+        }
+
+        elements.form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        });
+        elements.analyzeBtn.addEventListener('click', handleAnalyze);
+        elements.clearBtn.addEventListener('click', clearResults);
+        elements.downloadBtn.addEventListener('click', handleDownload);
+
+        async function handleAnalyze(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            const topic = elements.topicInput.value.trim();
+            
+            if (!topic) {
+                alert('Please enter a research topic');
+                return false;
+            }
+
+            setLoading(true);
+            clearResults();
+            elements.progressLog.innerHTML = '';
+            elements.progressLog.style.display = 'block';
+
+            // Generate request ID upfront
+            const requestId = generateRequestId();
+            
+            // Start listening for progress BEFORE sending request
+            listenToProgress(requestId);
+
+            try {
+                const formData = new FormData();
+                formData.append('topic', topic);
+                formData.append('request_id', requestId);  // Send request_id
+                
+                if (selectedFile) {
+                    formData.append('file', selectedFile);
+                    elements.statusText.textContent = 'Uploading file and analyzing with AI agent...';
+                } else {
+                    elements.statusText.textContent = 'Analyzing sources with AI agent...';
+                }
+
+                console.log('📤 Sending request to:', `${API_BASE_URL}/analyze`);
+                console.log('🆔 Request ID:', requestId);
+                console.log('📋 Topic:', topic);
+                console.log('📎 File:', selectedFile ? selectedFile.name : 'None');
+
+                const response = await fetch(`${API_BASE_URL}/analyze`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                console.log('📥 Response status:', response.status);
+
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+                    throw new Error(error.detail || `API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('✅ Response data:', data);
+                
+                displayResults(data);
+            } catch (error) {
+                console.error('❌ Error:', error);
+                displayError(error.message);
+            } finally {
+                setLoading(false);
+            }
+            
+            return false;
+        }
+
+        function generateRequestId() {
+            return 'req_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function listenToProgress(requestId) {
+            console.log('🎧 Listening for progress updates:', requestId);
+            
+            // Close existing connection if any
+            if (eventSource) {
+                eventSource.close();
+            }
+            
+            // Clear progress items tracking
+            progressItems.clear();
+            
+            eventSource = new EventSource(`${API_BASE_URL}/progress/${requestId}`);
+            
+            eventSource.onmessage = (event) => {
+                try {
+                    const update = JSON.parse(event.data);
+                    console.log('📍 Progress update:', update);
+                    handleProgressUpdate(update);
+                } catch (e) {
+                    console.error('Failed to parse progress update:', e);
+                }
+            };
+            
+            eventSource.onerror = (error) => {
+                console.log('Progress stream ended or error occurred');
+                if (eventSource) {
+                    eventSource.close();
+                    eventSource = null;
+                }
+            };
+        }
+
+        function handleProgressUpdate(update) {
+            const stepKey = getStepKey(update.step);
+            
+            // If this is a new step, mark previous steps as completed
+            if (!progressItems.has(stepKey)) {
+                markPreviousStepsCompleted();
+                addProgressItem(update, stepKey);
+            } else {
+                // Update existing step
+                updateProgressItem(stepKey, update);
+            }
+        }
+
+        function getStepKey(stepText) {
+            // Extract a key from the step text to identify unique steps
+            // Remove emojis and variable parts like numbers
+            return stepText
+                .replace(/[0-9]+/g, 'N')  // Replace numbers with N
+                .replace(/[\u{1F300}-\u{1F9FF}]/gu, '') // Remove emojis
+                .trim()
+                .substring(0, 30); // Take first 30 chars as key
+        }
+
+        function markPreviousStepsCompleted() {
+            // Mark all current steps as completed except the last one
+            const items = elements.progressLog.querySelectorAll('.progress-item');
+            items.forEach(item => {
+                if (item.classList.contains('active')) {
+                    item.classList.remove('active');
+                    item.classList.add('completed');
+                }
+            });
+        }
+
+        function addProgressItem(update, stepKey) {
+            const item = document.createElement('div');
+            item.className = `progress-item ${update.status === 'completed' ? 'completed' : update.status === 'failed' ? 'failed' : 'active'}`;
+            item.dataset.key = stepKey;
+            
+            const textSpan = document.createElement('span');
+            textSpan.className = 'progress-text';
+            textSpan.textContent = update.step;
+            
+            item.appendChild(textSpan);
+            
+            elements.progressLog.appendChild(item);
+            progressItems.set(stepKey, item);
+            
+            // Auto-scroll to bottom
+            elements.progressLog.scrollTop = elements.progressLog.scrollHeight;
+        }
+
+        function updateProgressItem(stepKey, update) {
+            const item = progressItems.get(stepKey);
+            if (!item) return;
+            
+            // Update status
+            item.classList.remove('active', 'completed', 'failed');
+            if (update.status === 'completed') {
+                item.classList.add('completed');
+            } else if (update.status === 'failed') {
+                item.classList.add('failed');
+            } else {
+                item.classList.add('active');
+            }
+            
+            // Update text if changed
+            const textSpan = item.querySelector('.progress-text');
+            if (textSpan) {
+                textSpan.textContent = update.step;
+            }
+        }
+
+        function displayResults(data) {
+            console.log('🎨 Rendering results...');
+            
+            // Mark all progress items as completed
+            const items = elements.progressLog.querySelectorAll('.progress-item');
+            items.forEach(item => {
+                item.classList.remove('active');
+                item.classList.add('completed');
+            });
+            
+            // Force results section to stay visible
+            elements.resultsSection.style.display = 'block';
+            elements.resultsSection.classList.add('active');
+
+            // Display sources
+            const sources = data.sources_processed || [];
+            elements.sourceCount.textContent = sources.length;
+            console.log(`📊 Displaying ${sources.length} sources`);
+
+            if (sources.length > 0) {
+                elements.sourcesList.innerHTML = sources.map((source, idx) => {
+                    const isLocal = source.startsWith('data/uploads');
+                    const displayName = isLocal ? '📎 Uploaded file: ' + source.split('/').pop() : '🌐 ' + source;
+                    return `<div class="source-item">${idx + 1}. ${displayName}</div>`;
+                }).join('');
+            } else {
+                elements.sourcesList.innerHTML = '<div class="empty-state">No sources processed</div>';
+            }
+
+            // Display report with Markdown rendering
+            const report = data.final_report || 'No report generated.';
+            
+            // Check if marked.js is loaded
+            if (typeof marked !== 'undefined') {
+                // Configure marked for better rendering
+                marked.setOptions({
+                    breaks: true,
+                    gfm: true
+                });
+                
+                // Render markdown to HTML
+                elements.reportContent.innerHTML = marked.parse(report);
+                console.log('📄 Report rendered with Markdown');
+            } else {
+                // Fallback to plain text
+                elements.reportContent.textContent = report;
+                console.warn('⚠️ marked.js not loaded, using plain text');
+            }
+            
+            console.log(`📄 Report length: ${report.length} characters`);
+
+            // Show download button if report file is available
+            if (data.report_file) {
+                reportFilename = data.report_file;
+                elements.downloadSection.style.display = 'block';
+                console.log(`💾 Download available: ${data.report_file}`);
+            }
+            
+            // Scroll to results
+            elements.resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            console.log('✅ Results displayed successfully');
+        }
+
+        function displayError(message) {
+            console.error('🚨 Displaying error:', message);
+            elements.resultsSection.classList.add('active');
+            elements.sourcesList.innerHTML = '<div class="empty-state">Error occurred</div>';
+            elements.reportContent.innerHTML = `
+                <div class="error-message">
+                    <strong>Error:</strong> ${message}<br><br>
+                    <strong>Troubleshooting:</strong><br>
+                    1. Check that your API server is running<br>
+                    2. Verify the API URL is correct: ${API_BASE_URL}<br>
+                    3. Check browser console (F12) for details
+                </div>
+            `;
+        }
+
+        function clearResults() {
+            elements.resultsSection.classList.remove('active');
+            elements.sourcesList.innerHTML = '';
+            elements.reportContent.textContent = '';
+            elements.sourceCount.textContent = '0';
+            elements.downloadSection.style.display = 'none';
+            elements.progressLog.style.display = 'none';
+            elements.progressLog.innerHTML = '';
+            progressItems.clear();
+            reportFilename = null;
+            
+            // Close event source if open
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+        }
+
+        function handleDownload() {
+            if (!reportFilename) {
+                alert('No report available to download');
+                return;
+            }
+            
+            // Trigger download
+            window.open(`${API_BASE_URL}/download/${reportFilename}`, '_blank');
+        }
+
+        function setLoading(isLoading) {
+            elements.analyzeBtn.disabled = isLoading;
+            elements.topicInput.disabled = isLoading;
+            elements.fileInput.disabled = isLoading;
+            elements.fileUploadArea.style.pointerEvents = isLoading ? 'none' : 'auto';
+            
+            if (isLoading) {
+                elements.btnText.textContent = 'Analyzing...';
+                elements.statusBar.classList.add('active');
+            } else {
+                elements.btnText.textContent = 'Start Analysis';
+                elements.statusBar.classList.remove('active');
+                elements.statusText.textContent = 'Analyzing sources with AI agent...';
+            }
+        }
+
+        // Check API status on load
+        console.log('🔗 Connecting to API at:', API_BASE_URL);
+        fetch(`${API_BASE_URL}/`)
+            .then(res => {
+                console.log('📡 API responded with status:', res.status);
+                return res.json();
+            })
+            .then(data => {
+                console.log('✅ API Status:', data);
+                if (data.status === 'online') {
+                    console.log('🟢 API is ready!');
+                }
+            })
+            .catch(err => {
+                console.warn('⚠️ API connection failed:', err);
+                console.warn('Make sure your server is running at:', API_BASE_URL);
+            });
+    </script>
+</body>
+</html>
