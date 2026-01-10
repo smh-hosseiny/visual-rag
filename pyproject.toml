@@ -3,7 +3,7 @@ name = "llm-ocr-backend"
 version = "0.1.0"
 description = "FastAPI + LangChain + DeepSeek-OCR backend for autonomous market research agent"
 readme = "README.md"
-authors = [{name = "S. Hosseini", email = "hosseiny290@gmail.com"}]
+authors = [{name = "Your Name", email = "your@email.com"}]
 license = {text = "MIT"}
 keywords = ["langgraph", "rag", "ocr", "fastapi", "ai-agent"]
 requires-python = ">=3.10"
@@ -41,7 +41,10 @@ dependencies = [
     # PDF processing (required for uploaded PDFs → images for DeepSeek-OCR)
     "pdf2image>=1.17.0",
     # Embeddings 
-    "sentence-transformers >=5.2.0"
+    "sentence-transformers >=5.2.0",
+    "aiofiles==25.1.0",
+    "IPython"
+
 ]
 
 [project.optional-dependencies]

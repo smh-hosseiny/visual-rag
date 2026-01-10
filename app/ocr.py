@@ -17,7 +17,7 @@ class DeepSeekOCR:
     def __init__(self, model_name="deepseek-ai/DeepSeek-OCR", load_in_4bit=False, offload_to_cpu=False):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         
-        print(f"🔄 Loading DeepSeek-OCR ({self.device})...")
+        print(f"Loading DeepSeek-OCR ({self.device})...")
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
         
         # Strategy: Run in native BFloat16. 
@@ -35,7 +35,7 @@ class DeepSeekOCR:
         )
         
         self.model.eval()
-        print(f"✅ DeepSeek-OCR Loaded in {dtype}.")
+        print(f"DeepSeek-OCR Loaded in {dtype}.")
 
     def process_image(self, image_path: str, prompt="<image>\n<|grounding|>Convert to markdown.") -> str:
         if not os.path.exists(image_path):

@@ -19,25 +19,122 @@
   <em>(Watch the autonomous agent analyze H100 GPU prices)</em>
 </p>
 
----
 
-**VisualRAG** is an autonomous Agentic RAG system designed to automate the heavy lifting of market research. Unlike traditional scrapers that fail on complex documents, VisualRAG treats research as a visual task, reading PDFs and charts pixel-by-pixel using **DeepSeek-OCR** to extract structured data that standard LLMs miss.
+**VisualRAG** is an autonomous Agentic RAG system designed to automate the heavy lifting of market research. Unlike traditional scrapers that fail on complex documents, VisualRAG treats research as a visual task, reading PDFs and charts pixel-by-pixel using **DeepSeek-OCR** to extract structured data that standard LLMs miss. It autonomously plans research strategies, discovers high-value whitepapers, and compresses hours of analysis into concise, executive-grade reports.
 
-It autonomously plans research strategies, finds high-value whitepapers, and compresses hours of analysis into a concise, executive-grade report.
+The system features a self-correcting orchestration layer that can recover from search or analysis failures without human intervention. It uses a hybrid compute setup optimized for both cost and performance, running GPU-intensive visual processing locally (CUDA) while delegating higher-level reasoning to cloud models. With a visual-first extraction approach, VisualRAG can recover critical information from complex or “unreadable” PDFs, and delivers clean, well-structured Markdown reports with grounded citations that are immediately usable by decision-makers.
 
----
 
-## ✨ Key Features
-- **Autonomous orchestration**  
-  A self-correcting workflow that handles search failures.
-- **Hybrid compute setup**  
-  Designed for both cost and performance: GPU-heavy visual processing runs locally (CUDA), while higher-level reasoning is handled in the cloud.
-- **Visual-first data extraction**  
-  Able to pull useful information from “unreadable” PDFs, where important market details often hide.
-- **Clean, structured outputs**  
-  Generates well-formatted Markdown reports with clear sections and direct citations, ready to share with decision-makers.
 
----
+## System Architecture & Pipeline
+
+VisualRag operates as a fully autonomous directed graph (DAG) orchestrated by **LangGraph**, featuring a 4-node architecture with self-correction capabilities. Here's how a single research task flows through the system:
+
+### Agent Workflow Graph
+
+<p align="center">
+  <img src="assets/graph.png" alt="Agent Workflow" width="150">
+  <br>
+  <em>LangGraph StateGraph showing the 4-node architecture with self-correction loop</em>
+</p>
+
+### The 4-Node Pipeline
+
+#### 1. **Research Node**  - Plan & Search
+Discovers and ranks high-quality sources using adaptive web search (Tavily API), lightweight URL scoring, and optional user-uploaded files. Outputs a small set of the most relevant documents.
+
+<!-- 
+**Process:**
+- Receives high-level objective (e.g., *"Analyze NVIDIA H100 pricing vs. AMD MI300"*)
+- Executes 3-5 adaptive web searches via **Tavily API**, targeting high-signal sources like investor reports, whitepapers, and technical data sheets
+- Applies intelligent URL scoring algorithm:
+  - **+10 points**: PDFs (document-rich content)
+  - **+5 points**: Images (charts, infographics)
+  - **+3 points**: Authoritative domains (.gov, .edu, .org)
+  - **-5 points**: Forums (reddit, quora)
+  - **-3 points**: Paywalls
+- Merges web results with user-uploaded files
+- Limits to top 2-4 sources (configurable)
+
+**Output:** Ranked list of high-quality source URLs -->
+
+
+#### 2. **OCR Node**  - Visual Ingestion
+Processes documents visually to preserve tables, charts, and layout. PDFs are converted to images, OCR is run locally on GPU (DeepSeek-OCR), and cleaned text is chunked, embedded, and stored in ChromaDB.
+
+<!-- **What it does:** Extracts text from documents while preserving visual structure
+
+**Why visual-first?** Standard text scrapers destroy the context of tables and charts. MarketLens treats documents as images to preserve layout, row/column alignment, and visual hierarchies.
+
+**Process:**
+- Downloads retrieved documents locally (50MB limit)
+- Converts PDFs → high-resolution images using `pdf2image` (up to 3 pages per document)
+- Runs **DeepSeek-OCR** locally on GPU (RTX 3090 or equivalent)
+  - Performs vision-language extraction
+  - Parses complex pricing tables and technical specifications that standard OCR tools miss
+  - Runs entirely on-premise for speed and data privacy
+- Cleans output (removes `<|ref|>`, `<|det|>` tags, URLs)
+- Chunks text (1000 chars, 200 overlap)
+- Embeds using `all-MiniLM-L6-v2` (HuggingFace)
+- Stores in **ChromaDB** vector database
+
+**Output:** Vectorized document chunks with source metadata -->
+
+
+
+#### 3. **Analysis Node** - RAG & Synthesis
+Retrieves relevant document chunks from ChromaDB and generates a structured markdown report using Gemini 2.5 Flash with deterministic settings. The output follows a professional template (summary, market analysis, financials, SWOT, recommendations).
+<!-- 
+**What it does:** Generates structured competitive intelligence reports
+
+**Process:**
+- **Retrieval:** Queries ChromaDB for top-20 most relevant chunks
+- **Context Building:** Assembles retrieved chunks with source citations
+- **Reasoning:** Feeds context into **Gemini 2.5 Flash** (temperature=0 for deterministic outputs)
+- **Template Application:** Structures output as professional markdown report:
+  - 📋 Executive Summary
+  - ⚡ Market & Opportunity Analysis
+  - 💰 Financial Model (with exact pricing data)
+  - 🧭 SWOT Analysis
+  - 🎯 Strategic Recommendation
+
+**Output:** Structured markdown report with citations, ready for decision-makers -->
+
+
+
+#### 4. **Evaluator Node** - Quality Assurance
+Scores report quality using an LLM-as-judge and decides whether to approve or trigger a retry, enabling automatic refinement when gaps are detected.
+
+<!-- **What it does:** Assesses report quality and controls the self-correction loop
+
+**Process:**
+- Uses **LLM-as-judge** to score report quality (1-10)
+- Evaluates across four dimensions:
+  - **Data Grounding**: Backed by concrete sources?
+  - **Task Alignment**: Answers user's specific question?
+  - **Completeness**: All sections present with substance?
+  - **Actionability**: Provides clear, specific insights?
+- Makes routing decision based on evaluation:
+  - **APPROVE** (score ≥ 7) → End workflow ✅
+  - **RETRY_RESEARCH** → Back to Research Node (missing data)
+  - **RETRY_ANALYSIS** → Back to Analysis Node (poor structure/logic)
+  - **Max retries exceeded** (2 iterations) → Auto-approve (fail-safe)
+
+**Output:** Quality score + routing decision -->
+
+
+### Self-Correction Loop
+If the report is incomplete or weakly grounded, the Evaluator routes execution back to the appropriate node. The loop runs for a limited number of iterations, ensuring reliable outputs without manual intervention.
+<!-- **Example Self-Correction Scenario:**
+1. **First Pass**: Analysis generates report (score: 6/10 - missing pricing data)
+2. **Evaluator**: Triggers `RETRY_RESEARCH` with feedback: "Include competitor pricing"
+3. **Second Pass**: Research finds pricing PDFs, OCR extracts tables
+4. **Re-Analysis**: Generates enhanced report (score: 8/10)
+5. **Evaluator**: Approves and ends workflow ✅
+
+This autonomous loop ensures high-quality outputs without human intervention. -->
+
+
 
 ## 📂 Project Structure
 
@@ -56,32 +153,8 @@ visual-rag/
 ├── pyproject.toml     # Project dependencies & configuration
 └── run_server.sh      # Startup script
 ```
----
 
-## ⚙️ The Pipeline
 
-VisualRAG operates as a fully autonomous directed graph (DAG) orchestrated by **LangGraph**. Here is the lifecycle of a single research task:
-
-### 1. **Plan & Search** 🧭
-The agent receives a high-level objective (e.g., *"Analyze NVIDIA H100 pricing vs. AMD MI300"*). It autonomously generates search queries using **Tavily API**, specifically targeting high-signal sources like investor reports, whitepapers, and technical data sheets (filtering for pdf and image assets).
-
-### 2. **Visual Ingestion** 👁️
-Standard text scrapers often destroy the context of tables and charts. VisualRAG takes a different approach:
-* It downloads retrieved documents locally.
-* It converts PDFs into high-resolution images using `pdf2image`.
-* This ensures that layout, row/column alignment, and visual hierarchies are preserved for the next step.
-
-### 3. **DeepSeek-OCR (Local Vision)** 🧠
-The core of the system is a local instance of **DeepSeek-OCR** running on an **RTX 3090**.
-* The model "reads" the document images, performing vision-language extraction.
-* It parses complex pricing tables and technical specifications that standard OCR tools miss.
-* This runs entirely on-premise for speed and data privacy.
-
-### 4. **RAG & Synthesis** 📊
-* **Embeddings:** The extracted text is chunked and embedded using `all-MiniLM-L6-v2` (running locally via HuggingFace) into a persistent **ChromaDB** vector store.
-* **Reasoning:** The system retrieves the most relevant chunks and feeds them into **Gemini 2.5 Flash**. The LLM synthesizes the disparate data points into a structured Markdown report with citations, SWOT analysis, and exact pricing data.
-
----
 
 ## 🛠️ Environment Setup
 
@@ -114,7 +187,7 @@ This project uses Conda to manage dependencies and CUDA environments.
     TAVILY_API_KEY=your_tavily_key
     ```
 
----
+
 
 ## 🚀 Running the Agent
 
@@ -144,9 +217,9 @@ The server will start at **http://localhost:8001**
 2. Right-click `index.html` → "Open with Live Server"
 3. Opens at `http://127.0.0.1:5500`
 
----
 
-## 📊 Usage Examples
+
+## Usage Examples
 
 ### Example 1: Competitive Analysis
 ```
@@ -159,32 +232,36 @@ Topic: "NVIDIA H100 vs AMD MI300X pricing comparison"
 - SWOT analysis for both products
 - Strategic recommendations
 
----
+
 
 ## 🔧 Configuration
 
-### Adjusting Processing Limits
+All agent behavior is controlled via `app/agent.py` in class `AgentConfig`.
 
-Edit `app/agent.py`for number of web sources to process:
+### Common Adjustments
 
+**Increase research depth:**
 ```python
-limit = 3  # In ocr_node()
+MAX_SOURCES: int = 4  # Process more documents (slower, more comprehensive)
 ```
 
-### Changing LLM Model
-
-Edit `app/agent.py` to change the model:
-
+**Allow more self-correction:**
 ```python
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",  
-    temperature=0,
-    max_retries=2
-)
+MAX_RETRIES: int = 3  # More iterations for complex queries
+```
+
+**Change LLM:**
+```python
+MODEL_NAME: str = "gemini-2.0-flash-exp"  # Use experimental model
+```
+
+**Adjust RAG context:**
+```python
+RETRIEVAL_TOP_K: int = 30  # More context (may include noise)
 ```
 
 
-### 📉 Handling OOM Errors (Lowering Resolution)
+### Handling OOM Errors (Lowering Resolution)
 
 If you encounter CUDA Out-Of-Memory errors on smaller GPUs (e.g., <12GB VRAM), reduce the inference resolution in `app/ocr.py`:
 
@@ -193,31 +270,29 @@ If you encounter CUDA Out-Of-Memory errors on smaller GPUs (e.g., <12GB VRAM), r
 
 result = self.model.infer(
     ...
-    base_size=512,   # 📉 Reduce this (Default: 1024)
-    image_size=480,  # 📉 Reduce this (Default: 640)
+    base_size=1024,  # Reduce this
+    image_size=640,  # Reduce this 
     ...
 )
 ```
 
----
 
-## 📝 License
+
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
----
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-- **DeepSeek AI** for the DeepSeek-OCR model
-- **Google** for Gemini API
-- **Tavily** for search API
-- **LangChain** team for LangGraph framework
+- **DeepSeek AI** for the DeepSeek-OCR model  
+- **Google** for the Gemini API  
+- **Tavily** for the search API  
+- **LangChain** team for the LangGraph framework
 
----
 
-## 📧 Contact
+
+## Contact
 
 For questions or support, please open an issue on GitHub or contact [hosseiny290@gmail.com]
 
----

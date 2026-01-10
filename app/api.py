@@ -28,21 +28,21 @@ progress_updates = {}
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("=" * 60)
-    print("🚀 MarketLens Agent Starting...")
+    print("MarketLens Agent Starting...")
     print("=" * 60)
-    print("📦 Loading DeepSeek-OCR model...")
+    print("Loading DeepSeek-OCR model...")
     DeepSeekOCR.get_instance()
-    print("✅ Model loaded successfully!")
-    print(f"🌐 Server running at: http://localhost:8001")
-    print(f"📖 API docs available at: http://localhost:8001/docs")
+    print("Model loaded successfully!")
+    print(f"Server running at: http://localhost:8001")
+    print(f"API docs available at: http://localhost:8001/docs")
     print("=" * 60)
     yield
     print("\n" + "=" * 60)
-    print("🛑 Server shutting down...")
+    print("Server shutting down...")
     if torch.cuda.is_available():
-        print("🧹 Clearing CUDA cache...")
+        print("Clearing CUDA cache...")
         torch.cuda.empty_cache()
-    print("✅ Shutdown complete")
+    print("Shutdown complete")
     print("=" * 60)
 
 app = FastAPI(title="MarketLens Agent API", lifespan=lifespan)
@@ -57,19 +57,9 @@ app.add_middleware(
 
 @app.get("/")
 def read_root():
-    print("📡 Health check received")
+    print("Health check received")
     return {"status": "online", "message": "MarketLens is ready."}
 
-async def update_progress(request_id: str, step: str, status: str = "running"):
-    """Update progress for a specific request"""
-    if request_id not in progress_updates:
-        progress_updates[request_id] = []
-    progress_updates[request_id].append({
-        "step": step,
-        "status": status,
-        "timestamp": datetime.now().isoformat()
-    })
-    print(f"📍 Progress [{request_id}]: {step}")
 
 @app.post("/analyze")
 async def analyze_market(
@@ -82,23 +72,23 @@ async def analyze_market(
         request_id = str(uuid.uuid4())
     
     print("\n" + "=" * 60)
-    print("📥 NEW REQUEST RECEIVED")
-    print(f"🆔 Request ID: {request_id}")
+    print("NEW REQUEST RECEIVED")
+    print(f"Request ID: {request_id}")
     print("=" * 60)
-    print(f"📋 Topic: {topic}")
+    print(f"Topic: {topic}")
 
-    # 1. 🧹 CLEAR OLD DATA FIRST!
-    print("🧹 Resetting Knowledge Base for new topic...")
+    # 1. CLEAR OLD DATA FIRST!
+    print("Resetting Knowledge Base for new topic...")
     reset_knowledge_base()
     
     try:
-        await update_progress(request_id, "🚀 Starting analysis...")
+        await update_progress(request_id, "Starting analysis...")
         uploaded_file_path = None
         
         # 1. Handle File Upload
         if file:
-            print(f"📎 File uploaded: {file.filename}")
-            await update_progress(request_id, f"📎 Processing uploaded file: {file.filename}")
+            print(f"File uploaded: {file.filename}")
+            await update_progress(request_id, f"Processing uploaded file: {file.filename}")
             
             file_extension = file.filename.split(".")[-1]
             unique_filename = f"{uuid.uuid4()}.{file_extension}"
@@ -108,15 +98,15 @@ async def analyze_market(
                 shutil.copyfileobj(file.file, buffer)
             
             file_size = os.path.getsize(uploaded_file_path)
-            print(f"✅ File saved: {unique_filename} ({file_size} bytes)")
-            await update_progress(request_id, f"✅ File uploaded successfully ({file_size} bytes)")
+            print(f"File saved: {unique_filename} ({file_size} bytes)")
+            await update_progress(request_id, f"File uploaded successfully ({file_size} bytes)")
         else:
-            print("ℹ️  No file uploaded")
-            await update_progress(request_id, "🔍 Searching for sources online...")
+            print("No file uploaded")
+            await update_progress(request_id, "Searching for sources online...")
         
         # 2. Initialize Agent State
-        print("\n🤖 Initializing agent...")
-        await update_progress(request_id, "🤖 Initializing AI agent...")
+        print("\nInitializing agent...")
+        await update_progress(request_id, "Initializing AI agent...")
         
         initial_state = {
             "task": topic,
@@ -127,8 +117,8 @@ async def analyze_market(
         }
         
         # 3. Run Agent
-        print("⚙️  Running agent workflow...")
-        await update_progress(request_id, "🕵️ Researching topic and finding sources...")
+        print("Running agent workflow...")
+        await update_progress(request_id, "Researching topic and finding sources...")
         
         # Add a small delay to ensure progress is visible
         await asyncio.sleep(0.5)
@@ -138,13 +128,13 @@ async def analyze_market(
         sources = result.get("image_urls", [])
         report = result.get("report", "Analysis failed.")
         
-        print(f"\n📊 Processing complete!")
-        print(f"   Sources processed: {len(sources)}")
-        print(f"   Report length: {len(report)} characters")
+        print(f"\nProcessing complete!")
+        print(f"  Sources processed: {len(sources)}")
+        print(f"  Report length: {len(report)} characters")
         
-        await update_progress(request_id, f"📊 Found {len(sources)} sources")
-        await update_progress(request_id, "👁️ Running OCR on documents...")
-        await update_progress(request_id, "🧠 Analyzing data and generating report...")
+        await update_progress(request_id, f"Found {len(sources)} sources")
+        await update_progress(request_id, "Running OCR on documents...")
+        await update_progress(request_id, "Analyzing data and generating report...")
         
         # 4. Save report to file
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -165,11 +155,11 @@ async def analyze_market(
             f.write(f"{'-' * 50}\n\n")
             f.write(report)
         
-        print(f"💾 Report saved: {report_filename}")
-        await update_progress(request_id, "💾 Saving report...", "completed")
+        print(f"Report saved: {report_filename}")
+        await update_progress(request_id, "Saving report...", "completed")
         
         print("=" * 60)
-        print("✅ REQUEST COMPLETED SUCCESSFULLY")
+        print("REQUEST COMPLETED SUCCESSFULLY")
         print("=" * 60 + "\n")
         
         return {
@@ -181,11 +171,22 @@ async def analyze_market(
         }
     
     except Exception as e:
-        print(f"\n❌ ERROR OCCURRED:")
-        print(f"   {type(e).__name__}: {str(e)}")
+        print(f"\nERROR OCCURRED:")
+        print(f"  {type(e).__name__}: {str(e)}")
         print("=" * 60 + "\n")
-        await update_progress(request_id, f"❌ Error: {str(e)}", "failed")
+        await update_progress(request_id, f"Error: {str(e)}", "failed")
         raise HTTPException(status_code=500, detail=str(e))
+
+async def update_progress(request_id: str, step: str, status: str = "running"):
+    """Update progress for a specific request"""
+    if request_id not in progress_updates:
+        progress_updates[request_id] = []
+    progress_updates[request_id].append({
+        "step": step,
+        "status": status,
+        "timestamp": datetime.now().isoformat()
+    })
+    print(f"Progress [{request_id}]: {step}")
 
 @app.get("/progress/{request_id}")
 async def get_progress(request_id: str):
@@ -225,16 +226,32 @@ async def get_progress(request_id: str):
 @app.get("/download/{filename}")
 async def download_report(filename: str):
     """Download a generated report file"""
-    print(f"📥 Download request for: {filename}")
+    print(f"Download request for: {filename}")
     file_path = os.path.join(REPORTS_DIR, filename)
     
     if not os.path.exists(file_path):
-        print(f"❌ File not found: {filename}")
+        print(f"File not found: {filename}")
         raise HTTPException(status_code=404, detail="Report file not found")
     
-    print(f"✅ Serving file: {filename}")
+    print(f"Serving file: {filename}")
     return FileResponse(
         path=file_path,
         filename=filename,
         media_type="text/plain"
+    )
+
+
+# =============================================================================
+# MAIN
+# =============================================================================
+
+if __name__ == "__main__":
+    import uvicorn
+    
+    uvicorn.run(
+        "app.api:app",
+        host="0.0.0.0",
+        port=8001,
+        reload=True,
+        log_level="info"
     )
