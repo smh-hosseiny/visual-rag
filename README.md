@@ -11,13 +11,20 @@
   <img src="https://img.shields.io/badge/Accelerator-CUDA-76B900" alt="CUDA">
 </p>
 
-<p align="center">
+<!-- <p align="center">
   <video src="https://github.com/user-attachments/assets/fe005c73-1aaf-4445-b852-278ba95f5988" controls width="85%">
     Your browser does not support the video tag.
   </video>
   <br>
   <em>(Watch the autonomous agent analyze H100 GPU prices)</em>
+</p> -->
+
+<p align="center">
+  <img src="assets/demo.gif" width="85%" />
+  <br>
+  <em>Watch the autonomous agent analyze H100 GPU prices</em>
 </p>
+
 
 
 **VisualRAG** is an autonomous Agentic RAG system designed to automate the heavy lifting of market research. Unlike traditional scrapers that fail on complex documents, VisualRAG treats research as a visual task, reading PDFs and charts pixel-by-pixel using **DeepSeek-OCR** to extract structured data that standard LLMs miss. It autonomously plans research strategies, discovers high-value whitepapers, and compresses hours of analysis into concise, executive-grade reports.
